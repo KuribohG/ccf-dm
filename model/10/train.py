@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.preprocessing import LabelEncoder
 from sklearn.grid_search import GridSearchCV
 from sklearn.metrics import roc_auc_score
-from sklearn.model_selection import KFold
+from sklearn.cross_validation import KFold
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier
 import matplotlib.pyplot as plt
 
@@ -110,34 +110,36 @@ class Ensemble:
         S_test = np.zeros((T.shape[0], len(self.base_models)))
 
         for i, clf in enumerate(self.base_models):
+            print("Current model id: {}".format(i))
             S_test_i = np.zeros((T.shape[0], len(folds)))
 
             for j, (train_idx, test_idx) in enumerate(folds):
+                print("  Current fold id: {}".format(j))
                 X_train = X[train_idx]
                 y_train = y[train_idx]
                 X_holdout = X[test_idx]
                 clf.fit(X_train, y_train)
-                y_pred = clf.predict_proba(X_holdout)[:]
+                y_pred = clf.predict_proba(X_holdout)[:, 1]
                 S_train[test_idx, i] = y_pred
-                S_test_i[:, j] = clf.predict_proba(T)[:]
+                S_test_i[:, j] = clf.predict_proba(T)[:, 1]
 
             S_test[:, i] = S_test_i.mean(1)
         
         self.stacker.fit(S_train, y)
-        y_pred = self.stacker.predict_proba(S_test)[:]
+        y_pred = self.stacker.predict_proba(S_test)[:, 1]
         return y_pred
 
 base_models = [
     xgb.XGBClassifier(**best_params_xgb, n_jobs=N_JOBS),
     RandomForestClassifier(**best_params_rfc, n_jobs=N_JOBS),
-    GradientBoostingClassfier(**best_params_gbc, n_jobs=N_JOBS),
+    GradientBoostingClassfier(**best_params_gbc),
     ExtraTreesClassifier(**best_params_etc, n_jobs=N_JOBS),
 ]
 
 stacker = xgb.XGBClassifier(n_jobs=N_JOBS)
 
 model = Ensemble(5, stacker, base_models)
-predictions = model.fit_predict(train_data, train_target, test_data)
+predictions = model.fit_predict(train_data, train_label, test_data)
 submission = pd.DataFrame({'EID': ds_test['EID'],
     'FORTARGET': np.array(predictions > 0.5, dtype=np.int32), 'PROB': predictions})
 submission.to_csv("submission.csv", index=False)
