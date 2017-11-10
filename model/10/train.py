@@ -53,8 +53,45 @@ best_params_xgb = {'max_depth': 8, 'min_child_weight': 1, 'n_estimators': 750, '
 # best_params_xgb = model.best_params_
 
 ### RandomForestClassifier ###
+
+rfc_pars = {
+    'n_estimators': [8, 9, 10, 11, 12],
+}
+rfc_model = RandomForestClassifier()
+
+model = GridSearchCV(estimator=rfc_model, param_grid=rfc_pars, scoring='roc_auc', n_jobs=N_JOBS, verbose=3)
+model.fit(train_data, train_label)
+print(model.best_score_)
+print(model.best_params_)
+best_params_rfc = model.best_params_
+
 ### GradientBoostingClassifier ###
+
+gbc_pars = {
+    'n_estimators': [100, 200, 300],
+    'lerning_rate': [0.02, 0.05, 0.1],
+    'max_depth': [5, 6, 7, 8],
+}
+gbc_model = GradientBoostingClassifier()
+
+model = GridSearchCV(estimator=gbc_model, param_grid=gbc_pars, scoring='roc_auc', n_jobs=N_JOBS, verbose=3)
+model.fit(train_data, train_label)
+print(model.best_score_)
+print(model.best_params_)
+best_params_gbc = model.best_params_
+
 ### ExtraTreesClassifier ###
+
+etc_pars = {
+    'n_estimators': [8, 9, 10, 11, 12],
+}
+etc_model = ExtraTreesClassifier()
+
+model = GridSearchCV(estimator=etc_model, param_grid=etc_pars, scoring='roc_auc', n_jobs=N_JOBS, verbose=3)
+model.fit(train_data, train_label)
+print(model.best_score_)
+print(model.best_params_)
+best_params_etc = model.best_params_
 
 class Ensemble:
     def __init__(self, n_folds, stacker, base_models):
@@ -92,9 +129,9 @@ class Ensemble:
 
 base_models = [
     xgb.XGBClassifier(**best_params_xgb, n_jobs=N_JOBS),
-    RandomForestClassifier(n_jobs=N_JOBS),
-    GradientBoostingClassfier(n_jobs=N_JOBS),
-    ExtraTreesClassifier(n_jobs=N_JOBS),
+    RandomForestClassifier(**best_params_rfc, n_jobs=N_JOBS),
+    GradientBoostingClassfier(**best_params_gbc, n_jobs=N_JOBS),
+    ExtraTreesClassifier(**best_params_etc, n_jobs=N_JOBS),
 ]
 
 stacker = xgb.XGBClassifier(n_jobs=N_JOBS)
