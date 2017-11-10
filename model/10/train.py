@@ -8,7 +8,7 @@ from sklearn.cross_validation import KFold
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier
 import matplotlib.pyplot as plt
 
-N_JOBS = 40
+N_JOBS = 4
 
 ds_train = pd.read_csv('train_ds.csv')
 ds_test = pd.read_csv('test_ds.csv')
@@ -55,8 +55,12 @@ best_params_xgb = {'max_depth': 8, 'min_child_weight': 1, 'n_estimators': 750, '
 ### RandomForestClassifier ###
 
 rfc_pars = {
-    'n_estimators': [8, 9, 10, 11, 12],
+    'n_estimators': [450, 500, 550],
+    'class_weight': [None, 'balanced'],
+    'max_depth': [7, 8, None],
+    'max_features': [None, 'auto', 'log2'],
 }
+# best_params_rfc = {'class_weight': 'balanced', 'n_estimators': 500}
 rfc_model = RandomForestClassifier()
 
 model = GridSearchCV(estimator=rfc_model, param_grid=rfc_pars, scoring='roc_auc', n_jobs=N_JOBS, verbose=3)
@@ -69,21 +73,22 @@ best_params_rfc = model.best_params_
 
 gbc_pars = {
     'n_estimators': [100, 200, 300],
-    'lerning_rate': [0.02, 0.05, 0.1],
+    'learning_rate': [0.02, 0.05, 0.1],
     'max_depth': [5, 6, 7, 8],
 }
 gbc_model = GradientBoostingClassifier()
 
-model = GridSearchCV(estimator=gbc_model, param_grid=gbc_pars, scoring='roc_auc', n_jobs=N_JOBS, verbose=3)
-model.fit(train_data, train_label)
-print(model.best_score_)
-print(model.best_params_)
-best_params_gbc = model.best_params_
+# model = GridSearchCV(estimator=gbc_model, param_grid=gbc_pars, scoring='roc_auc', n_jobs=N_JOBS, verbose=3)
+# model.fit(train_data, train_label)
+# print(model.best_score_)
+# print(model.best_params_)
+# best_params_gbc = model.best_params_
 
 ### ExtraTreesClassifier ###
 
 etc_pars = {
-    'n_estimators': [8, 9, 10, 11, 12],
+    'n_estimators': [100, 200, 300, 400, 500],
+    'class_weight': [None, 'balanced'],
 }
 etc_model = ExtraTreesClassifier()
 
@@ -130,10 +135,10 @@ class Ensemble:
         return y_pred
 
 base_models = [
-    xgb.XGBClassifier(**best_params_xgb, n_jobs=N_JOBS),
-    RandomForestClassifier(**best_params_rfc, n_jobs=N_JOBS),
-    GradientBoostingClassfier(**best_params_gbc),
     ExtraTreesClassifier(**best_params_etc, n_jobs=N_JOBS),
+    RandomForestClassifier(**best_params_rfc, n_jobs=N_JOBS),
+    GradientBoostingClassifier(**best_params_gbc),
+    xgb.XGBClassifier(**best_params_xgb, n_jobs=N_JOBS),
 ]
 
 stacker = xgb.XGBClassifier(n_jobs=N_JOBS)
